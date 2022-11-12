@@ -43,15 +43,14 @@ def get_transition_matrix(states: np.array) -> np.array:
 
     # Convert to probability
     for row in matrix[1:, 1:]:  # skip values in zero row and column
-        row_sum = np.sum(row)
-        row[:] /= row_sum
+        row /= np.sum(row)
 
     return matrix
 
 
 # Return list of anomaly transitions for one user
 def predict(transition_matrix: np.array, states: np.array) -> list:
-    probability_threshold = 0.01
+    zero_probability = 0.
     unique_states = transition_matrix[0, 1:].astype(np.int32)
 
     state_indices = {}  # dict with key - unique state; value - index of unique state
@@ -62,7 +61,7 @@ def predict(transition_matrix: np.array, states: np.array) -> list:
     for i in range(0, states.size - 1):  # start: 0 -> 1 state
         try:
             if transition_matrix[state_indices[states[i]],
-                                 state_indices[states[i + 1]]] < probability_threshold:
+                                 state_indices[states[i + 1]]] == zero_probability:
                 anomalies.append([states[i], states[i + 1]])
 
         except KeyError:  # if this state is not in the transition matrix
