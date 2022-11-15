@@ -44,7 +44,7 @@ def compare_tfidf(X: np.array) -> None:
 
 
 def plot_confusion_matrix(cf_matrix: np.array) -> None:
-    class_names = ['ham', 'spam']
+    class_names = ['spam', 'ham']
     df_cm = pd.DataFrame(cf_matrix, index=[i for i in class_names],
                          columns=[i for i in class_names])
     print(f"Confusion matrix:\n{df_cm}")
@@ -82,7 +82,7 @@ def main():
     y_pred = model.predict(x_test)
 
     # Getting metrics
-    cf_matrix = confusion_matrix(y_test, y_pred)  # [ [TP, FP] , [TN, FN] ]
+    cf_matrix = confusion_matrix(y_test, y_pred, labels=[1, 0])  # [ [TP, FP] , [TN, FN] ]
     plot_confusion_matrix(cf_matrix)
 
     print(f"\nPrecision: {precision_metric(cf_matrix)}\n"
