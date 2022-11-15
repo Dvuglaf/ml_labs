@@ -5,6 +5,17 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
 import pandas as pd
 import numpy as np
+import nltk
+import re
+from nltk.corpus import stopwords, wordnet
+from nltk.tokenize import word_tokenize
+
+
+nltk.download('averaged_perceptron_tagger')
+nltk.download('omw-1.4')
+nltk.download('stopwords')
+nltk.download('wordnet')
+nltk.download('punkt')
 
 
 class CustomTfidfTransformer:
@@ -37,10 +48,10 @@ def compare_tfidf(X: np.array) -> None:
     custom_transformer = CustomTfidfTransformer()
     res_1 = custom_transformer.fit_transform(X)
 
-    transformer = TfidfTransformer(norm='l2')
+    transformer = TfidfTransformer()
     res_2 = transformer.fit_transform(X).toarray()
 
-    assert np.all(np.abs(res_1 - res_2) < 0.000001)
+    assert np.all(np.abs(res_1 - res_2) < 0.000001)  #
 
 
 def plot_confusion_matrix(cf_matrix: np.array) -> None:
@@ -50,11 +61,35 @@ def plot_confusion_matrix(cf_matrix: np.array) -> None:
     print(f"Confusion matrix:\n{df_cm}")
 
 
+def get_token_tag(token: str):  # for lemmatization
+    tag_dict = {"J": wordnet.ADJ,
+                "N": wordnet.NOUN,
+                "V": wordnet.VERB,
+                "R": wordnet.ADV}
+    return tag_dict.get(nltk.pos_tag([token])[0][1][0].upper(), wordnet.NOUN)
+
+
+def preprocess_sentence(string: str):
+    removed_punctuation = re.sub(r'[^\w\s]', ' ', string)
+    tokens = word_tokenize(removed_punctuation)
+    tokens = [token.lower() for token in tokens]  # to lowercase
+    tokens = [i for i in tokens if (i not in stopwords.words('english'))]  # remove stopwords
+
+    # lemmatizer = nltk.stem.WordNetLemmatizer()  # lemmatization (for a very long time)
+    # tokens = [(i, get_token_tag(i)) for i in tokens]
+    # tokens = [lemmatizer.lemmatize(i, get_token_tag(i)) for i in tokens]
+
+    lemmatizer = nltk.stem.SnowballStemmer('english')  # stemming
+    tokens = [lemmatizer.stem(i) for i in tokens]
+    return ' '.join(tokens)
+
+
 def main():
     data = pd.read_csv("data/spam.csv", usecols=[0, 1], encoding='windows-1252')
 
     le = LabelEncoder()
     data['v1'] = le.fit_transform(data['v1'])  # transform labels to integers
+    data['v2'] = data['v2'].apply(preprocess_sentence)
 
     x_train, x_test, y_train, y_test = train_test_split(data['v2'].values, data['v1'].values, test_size=0.33,
                                                         random_state=42)
@@ -81,8 +116,8 @@ def main():
     model.fit(x_train, y_train)
     y_pred = model.predict(x_test)
 
-    # Getting metrics
-    cf_matrix = confusion_matrix(y_test, y_pred, labels=[1, 0])  # [ [TP, FP] , [TN, FN] ]
+    # Get metrics
+    cf_matrix = confusion_matrix(y_test, y_pred, labels=[0, 1])  # [ [TP, FP] , [TN, FN] ]
     plot_confusion_matrix(cf_matrix)
 
     print(f"\nPrecision: {precision_metric(cf_matrix)}\n"
